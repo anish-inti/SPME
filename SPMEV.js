@@ -1,123 +1,122 @@
-// Import necessary libraries
-import Chart from 'chart.js/auto';
-import WaveSurfer from 'wavesurfer.js';
-import { toast, Toastify } from 'toastify-js';
-import 'toastify-js/src/toastify.css';
-import Shepherd from 'shepherd.js';
-import 'shepherd.js/dist/css/shepherd.css';
-
 // Initialize global variables
-let detectedEmotion = null;
-let probabilities = null;
-let isLoading = false;
-let error = null;
-let audioData = null;
-let fileName = '';
-let isPlaying = false;
-let volume = 1;
-let isMuted = false;
-let emotionHistory = [];
-let isRealTimeMode = false;
-let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+console.log('SPMEV.js loaded');
+const state = {
+    detectedEmotion: null,
+    probabilities: null,
+    isLoading: false,
+    error: null,
+    audioData: null,
+    fileName: '',
+    isPlaying: false,
+    volume: 1,
+    isMuted: false,
+    emotionHistory: [],
+    isRealTimeMode: false,
+    highScores: JSON.parse(localStorage.getItem('highScores')) || []
+};
 
 let wavesurfer = null;
 let mediaRecorder = null;
 
 // DOM elements
-const fileInput = document.getElementById('fileInput');
-const waveformContainer = document.getElementById('waveform');
-const canvas = document.getElementById('visualizer');
-const playPauseButton = document.getElementById('playPauseButton');
-const volumeSlider = document.getElementById('volumeSlider');
-const muteButton = document.getElementById('muteButton');
-const realTimeButton = document.getElementById('realTimeButton');
-const shareButton = document.getElementById('shareButton');
-const resultsContainer = document.getElementById('results');
-const loadingIndicator = document.getElementById('loading');
-const errorDisplay = document.getElementById('error');
+const elements = {
+    fileInput: document.getElementById('fileInput'),
+    waveformContainer: document.getElementById('waveform'),
+    canvas: document.getElementById('probabilityChart'),
+    playPauseButton: document.getElementById('playPauseButton'),
+    volumeSlider: document.getElementById('volumeSlider'),
+    muteButton: document.getElementById('muteButton'),
+    realTimeButton: document.getElementById('realTimeButton'),
+    shareButton: document.getElementById('shareButton'),
+    resultsContainer: document.getElementById('results'),
+    loadingIndicator: document.getElementById('loading'),
+    errorDisplay: document.getElementById('error'),
+    dropZone: document.getElementById('dropZone'),
+    uploadForm: document.getElementById('uploadForm'),
+    uploadButton: document.getElementById('uploadButton'),
+    emotionDisplay: document.getElementById('emotionDisplay')
+};
 
-// Event listeners
-fileInput.addEventListener('change', handleFileUpload);
-document.addEventListener('dragover', handleDragOver);
-document.addEventListener('drop', handleDrop);
-playPauseButton.addEventListener('click', togglePlayPause);
-volumeSlider.addEventListener('input', handleVolumeChange);
-muteButton.addEventListener('click', toggleMute);
-realTimeButton.addEventListener('click', toggleRealTimeMode);
-shareButton.addEventListener('click', shareResults);
-
-// File upload handler
-async function handleFileUpload(event) {
-    let file;
-    if (event.dataTransfer) {
-        file = event.dataTransfer.files[0];
-    } else {
-        file = event.target.files[0];
-    }
-
-    if (!file) return;
-
-    if (!file.type.startsWith('audio/')) {
-        toast.error('Please upload an audio file');
-        return;
-    }
-
-    fileName = file.name;
-    isLoading = true;
-    error = null;
-    updateUI();
-
-    const formData = new FormData();
-    formData.append('audio', file);
-
-    try {
-        const response = await fetch('/api/analyze-emotion', {
-            method: 'POST',
-            body: formData,
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded');
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.getElementById('uploadButton');
+    console.log('File input element:', fileInput);
+    console.log('Upload button element:', uploadButton);
+    
+    if (fileInput && uploadButton) {
+        uploadButton.addEventListener('click', function() {
+            fileInput.click();
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to analyze audio');
-        }
-
-        const data = await response.json();
-        detectedEmotion = data.emotion;
-        probabilities = data.probabilities;
-        audioData = URL.createObjectURL(file);
-        updateEmotionHistory(data.emotion);
-        toast.success('Audio analysis complete');
-    } catch (err) {
-        error = err.message;
-        toast.error(err.message);
-    } finally {
-        isLoading = false;
-        updateUI();
+        fileInput.addEventListener('change', handleFileUpload);
+    } else {
+        console.error('File input or upload button not found');
     }
-}
-
-// UI update function
-function updateUI() {
-    loadingIndicator.style.display = isLoading ? 'block' : 'none';
-    errorDisplay.textContent = error || '';
     
-    if (audioData) {
-        initWavesurfer();
-        initVisualizer();
-    }
+    initializeApp();
+});
 
-    if (detectedEmotion) {
-        displayResults();
+// Initialize Shepherd.js tour
+const tour = new Shepherd.Tour({
+    defaultStepOptions: {
+        cancelIcon: {
+            enabled: true
+        },
+        classes: 'shepherd-theme-default'
     }
-}
+});
+
+// Initialize GSAP animations
+gsap.registerPlugin(ScrollTrigger);
+
+// Initialize Chart.js
+let emotionChart = null;
+let historyChart = null;
+
+// Initialize Toastify
+const toast = (message, type = 'info') => {
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "center",
+        backgroundColor: type === 'error' ? "linear-gradient(to right, #ff5f6d, #ffc371)" : "linear-gradient(to right, #00b09b, #96c93d)",
+    }).showToast();
+};
+
+// Initialize mobile menu
+const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+const mainNav = document.querySelector('.main-nav');
+
+// Initialize FAQ accordion
+const faqQuestions = document.querySelectorAll('.faq-question');
+
+// Initialize smooth scrolling
+const navLinks = document.querySelectorAll('a[href^="#"]');
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', initializeApp);
+elements.uploadForm.addEventListener('submit', handleFormSubmit);
+elements.fileInput.addEventListener('change', handleFileUpload);
+elements.uploadButton.addEventListener('click', () => elements.fileInput.click());
+elements.playPauseButton.addEventListener('click', togglePlayPause);
+elements.volumeSlider.addEventListener('input', handleVolumeChange);
+elements.muteButton.addEventListener('click', toggleMute);
+elements.realTimeButton.addEventListener('click', toggleRealTimeMode);
+elements.shareButton.addEventListener('click', shareResults);
+elements.dropZone.addEventListener('dragover', handleDragOver);
+elements.dropZone.addEventListener('drop', handleDrop);
 
 // Initialize WaveSurfer
-function initWavesurfer() {
+function initWaveSurfer() {
     if (wavesurfer) {
         wavesurfer.destroy();
     }
 
     wavesurfer = WaveSurfer.create({
-        container: waveformContainer,
+        container: elements.waveformContainer,
         waveColor: '#4F4A85',
         progressColor: '#383351',
         cursorColor: '#383351',
@@ -127,95 +126,218 @@ function initWavesurfer() {
         height: 150,
     });
 
-    wavesurfer.load(audioData);
+    wavesurfer.on('play', () => {
+        state.isPlaying = true;
+        elements.playPauseButton.textContent = 'Pause';
+    });
+    wavesurfer.on('pause', () => {
+        state.isPlaying = false;
+        elements.playPauseButton.textContent = 'Play';
+    });
+}
 
-    wavesurfer.on('play', () => isPlaying = true);
-    wavesurfer.on('pause', () => isPlaying = false);
+// File upload handler
+async function handleFileUpload(event) {
+    try {
+        let file;
+        if (event.dataTransfer) {
+            file = event.dataTransfer.files[0];
+        } else {
+            file = event.target.files[0];
+        }
+
+        if (!file) return;
+
+        if (!file.type.startsWith('audio/')) {
+            throw new Error("Please upload an audio file");
+        }
+
+        state.fileName = file.name;
+        state.isLoading = true;
+        state.error = null;
+        updateUI();
+
+        const formData = new FormData();
+        formData.append('audio', file);
+
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        state.detectedEmotion = data.detected_emotion;
+        state.probabilities = data.probabilities;
+        state.audioData = URL.createObjectURL(file);
+        updateEmotionHistory(data.detected_emotion);
+        
+        toast("Audio analysis complete");
+    } catch (err) {
+        state.error = err.message;
+        console.error('Error handling file upload:', err);
+        toast(err.message, 'error');
+    } finally {
+        state.isLoading = false;
+        updateUI();
+    }
+}
+
+// UI update function
+function updateUI() {
+    elements.loadingIndicator.style.display = state.isLoading ? 'block' : 'none';
+    elements.errorDisplay.textContent = state.error || '';
+    
+    if (state.audioData) {
+        initWaveSurfer();
+        wavesurfer.load(state.audioData);
+        initVisualizer();
+    }
+
+    if (state.detectedEmotion) {
+        displayResults();
+    }
 }
 
 // Initialize audio visualizer
 function initVisualizer() {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
-    const sourceNode = audioContext.createMediaElementSource(wavesurfer.media);
-    sourceNode.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    const ctx = canvas.getContext('2d');
-    const WIDTH = canvas.width;
-    const HEIGHT = canvas.height;
-
-    analyser.fftSize = 256;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        requestAnimationFrame(draw);
-
-        analyser.getByteFrequencyData(dataArray);
-
-        ctx.fillStyle = 'rgb(0, 0, 0)';
-        ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-        const barWidth = (WIDTH / bufferLength) * 2.5;
-        let barHeight;
-        let x = 0;
-
-        for (let i = 0; i < bufferLength; i++) {
-            barHeight = dataArray[i] / 2;
-
-            const r = barHeight + (25 * (i / bufferLength));
-            const g = 250 * (i / bufferLength);
-            const b = 50;
-
-            ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
-
-            x += barWidth + 1;
-        }
-    }
-
-    draw();
+    // Implementation of initVisualizer function
+    console.log('Initializing audio visualizer');
 }
 
 // Display analysis results
 function displayResults() {
-    resultsContainer.innerHTML = `
-        <h2>Detected Emotion: ${detectedEmotion}</h2>
-        <canvas id="emotionChart"></canvas>
-        <canvas id="historyChart"></canvas>
-    `;
-
-    const pieCtx = document.getElementById('emotionChart').getContext('2d');
-    new Chart(pieCtx, {
-        type: 'pie',
+    elements.emotionDisplay.textContent = `Detected Emotion: ${state.detectedEmotion}`;
+    
+    // Update probability chart
+    const ctx = elements.canvas.getContext('2d');
+    if (emotionChart) {
+        emotionChart.destroy();
+    }
+    emotionChart = new Chart(ctx, {
+        type: 'bar',
         data: {
-            labels: Object.keys(probabilities),
+            labels: Object.keys(state.probabilities),
             datasets: [{
-                data: Object.values(probabilities),
-                backgroundColor: [
-                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
-                ],
-            }],
+                label: 'Emotion Probabilities',
+                data: Object.values(state.probabilities),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                },
-            },
-        },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
     });
+}
 
-    const lineCtx = document.getElementById('historyChart').getContext('2d');
-    new Chart(lineCtx, {
+// Playback control functions
+function togglePlayPause() {
+    if (wavesurfer) {
+        wavesurfer.playPause();
+    }
+}
+
+function handleVolumeChange(event) {
+    state.volume = parseFloat(event.target.value);
+    if (wavesurfer) {
+        wavesurfer.setVolume(state.volume);
+    }
+}
+
+function toggleMute() {
+    state.isMuted = !state.isMuted;
+    if (wavesurfer) {
+        wavesurfer.setMute(state.isMuted);
+    }
+    elements.muteButton.textContent = state.isMuted ? 'Unmute' : 'Mute';
+}
+
+// Real-time detection functions
+function toggleRealTimeMode() {
+    state.isRealTimeMode = !state.isRealTimeMode;
+    if (state.isRealTimeMode) {
+        startRealTimeDetection();
+        elements.realTimeButton.textContent = 'Stop Real-Time Detection';
+    } else {
+        stopRealTimeDetection();
+        elements.realTimeButton.textContent = 'Start Real-Time Detection';
+    }
+}
+
+function startRealTimeDetection() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = handleRealTimeAudioData;
+            mediaRecorder.start(1000); // Collect data every second
+        })
+        .catch(err => {
+            console.error('Error accessing microphone:', err);
+            toast('Error accessing microphone. Please check your permissions.', 'error');
+        });
+}
+
+function stopRealTimeDetection() {
+    if (mediaRecorder) {
+        mediaRecorder.stop();
+    }
+}
+
+async function handleRealTimeAudioData(event) {
+    const audioBlob = event.data;
+    const formData = new FormData();
+    formData.append('audio', audioBlob);
+
+    try {
+        const response = await fetch('/realtime', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        state.detectedEmotion = data.detected_emotion;
+        state.probabilities = data.probabilities;
+        updateEmotionHistory(data.detected_emotion);
+        updateUI();
+    } catch (err) {
+        console.error('Error in real-time analysis:', err);
+        toast('Error in real-time analysis. Please try again.', 'error');
+    }
+}
+
+// Helper functions
+function updateEmotionHistory(emotion) {
+    state.emotionHistory.push({ time: new Date(), emotion });
+    if (state.emotionHistory.length > 10) {
+        state.emotionHistory.shift();
+    }
+    
+    // Update history chart
+    if (historyChart) {
+        historyChart.destroy();
+    }
+    const ctx = document.getElementById('historyChart').getContext('2d');
+    historyChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: emotionHistory.map(entry => entry.time.toLocaleTimeString()),
+            labels: state.emotionHistory.map(entry => entry.time.toLocaleTimeString()),
             datasets: [{
-                label: 'Emotion over time',
-                data: emotionHistory.map(entry => entry.emotion),
+                label: 'Emotion History',
+                data: state.emotionHistory.map(entry => entry.emotion),
                 fill: false,
                 borderColor: 'rgb(75, 192, 192)',
                 tension: 0.1
@@ -232,128 +354,21 @@ function displayResults() {
     });
 }
 
-// Playback control functions
-function togglePlayPause() {
-    if (wavesurfer) {
-        wavesurfer.playPause();
-        isPlaying = !isPlaying;
-        playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
-    }
-}
-
-function handleVolumeChange(event) {
-    volume = parseFloat(event.target.value);
-    if (wavesurfer) {
-        wavesurfer.setVolume(volume);
-    }
-}
-
-function toggleMute() {
-    isMuted = !isMuted;
-    if (wavesurfer) {
-        wavesurfer.setMute(isMuted);
-    }
-    muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
-}
-
-// Real-time detection functions
-function toggleRealTimeMode() {
-    if (isRealTimeMode) {
-        stopRealTimeDetection();
-    } else {
-        startRealTimeDetection();
-    }
-}
-
-function startRealTimeDetection() {
-    isRealTimeMode = true;
-    realTimeButton.textContent = 'Stop Real-Time Detection';
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = handleRealTimeAudioData;
-            mediaRecorder.start(1000); // Capture audio every second
-        })
-        .catch(err => {
-            console.error('Error accessing microphone:', err);
-            toast.error('Unable to access microphone');
-        });
-}
-
-function stopRealTimeDetection() {
-    isRealTimeMode = false;
-    realTimeButton.textContent = 'Start Real-Time Detection';
-    if (mediaRecorder) {
-        mediaRecorder.stop();
-    }
-}
-
-async function handleRealTimeAudioData(event) {
-    const audioBlob = event.data;
-    const formData = new FormData();
-    formData.append('audio', audioBlob);
-
-    try {
-        const response = await fetch('/api/analyze-emotion', {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to analyze audio');
-        }
-
-        const data = await response.json();
-        detectedEmotion = data.emotion;
-        probabilities = data.probabilities;
-        updateEmotionHistory(data.emotion);
-        updateUI();
-    } catch (err) {
-        console.error('Error in real-time analysis:', err);
-    }
-}
-
-// Helper functions
-function updateEmotionHistory(emotion) {
-    emotionHistory.push({ time: new Date(), emotion });
-}
-
 function shareResults() {
-    if (detectedEmotion) {
-        const shareText = `I just analyzed my speech emotion! The detected emotion is: ${detectedEmotion}. Try it yourself!`;
-        const shareUrl = window.location.href;
-
-        if (navigator.share) {
-            navigator.share({
-                title: 'My Speech Emotion Analysis',
-                text: shareText,
-                url: shareUrl,
-            })
-            .then(() => console.log('Successful share'))
-            .catch((error) => console.log('Error sharing', error));
-        } else {
-            // Fallback for browsers that don't support Web Share API
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
-        }
+    if (state.detectedEmotion) {
+        const shareText = `I just analyzed my speech emotion! The detected emotion is: ${state.detectedEmotion}`;
+        const shareUrl = encodeURIComponent(window.location.href);
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${shareUrl}`, '_blank');
     } else {
-        toast.warn('Analyze an audio file first to share results');
+        toast('No results to share yet. Please analyze an audio file first.', 'error');
     }
 }
 
 // Tour functionality
 function startTour() {
-    const tour = new Shepherd.Tour({
-        defaultStepOptions: {
-            cancelIcon: {
-                enabled: true
-            },
-            classes: 'shepherd-theme-default'
-        }
-    });
-
     tour.addStep({
         id: 'welcome',
-        text: 'Welcome to the Audio Emotion Analyzer! Let\'s take a quick tour.',
+        text: 'Welcome to the Speech Emotion Recognition app! Let\'s take a quick tour.',
         buttons: [
             {
                 text: 'Next',
@@ -364,9 +379,9 @@ function startTour() {
 
     tour.addStep({
         id: 'upload',
-        text: 'Start by uploading an audio file here or drag and drop it.',
+        text: 'Click here to upload an audio file for analysis.',
         attachTo: {
-            element: fileInput,
+            element: elements.uploadButton,
             on: 'bottom'
         },
         buttons: [
@@ -377,25 +392,77 @@ function startTour() {
         ]
     });
 
-    // Add more steps as needed
+    tour.addStep({
+        id: 'realtime',
+        text: 'Click here to start real-time emotion detection using your microphone.',
+        attachTo: {
+            element: elements.realTimeButton,
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Next',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        id: 'results',
+        text: 'Your analysis results will appear here.',
+        attachTo: {
+            element: elements.resultsContainer,
+            on: 'top'
+        },
+        buttons: [
+            {
+                text: 'Finish',
+                action: tour.complete
+            }
+        ]
+    });
 
     tour.start();
 }
 
-// Initialize the application
-function init() {
-    // Set up drag and drop functionality
-    const dropZone = document.querySelector('.drop-zone');
-    dropZone.addEventListener('dragover', handleDragOver);
-    dropZone.addEventListener('drop', handleDrop);
-
-    // Set up tour button
-    const tourButton = document.getElementById('tourButton');
-    tourButton.addEventListener('click', startTour);
-
-    // Initialize Toastify
-    Toastify.init();
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
 }
 
-// Run initialization when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', init);
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleFileUpload(e);
+}
+
+// Initialize the app
+function initializeApp() {
+    initWaveSurfer();
+    // Add any other initialization code here
+    console.log('App initialized');
+}
+
+// Call initializeApp when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Add this near the top of your file
+const socket = io('http://localhost:5000');
+
+// Update your real-time handling function
+function handleRealTimeAudioData(audioData) {
+    socket.emit('audio_data', audioData);
+}
+
+// Add a listener for the emotion results
+socket.on('emotion_result', (result) => {
+    state.detectedEmotion = result.detected_emotion;
+    state.probabilities = result.probabilities;
+    updateUI();
+});
+
+// Add error handling for socket communication
+socket.on('error', (error) => {
+    console.error('Socket error:', error);
+    toast('An error occurred during real-time analysis', 'error');
+});
