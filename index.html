@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Discover the emotions in your voice with our cutting-edge speech emotion recognition technology.">
+    <title>Entropy - Speech Emotion Recognition App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="SPME.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/2.0.6/wavesurfer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/js/shepherd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        :root {
+            --deep-purple: #4A0E4E;
+            --light-purple: #8E44AD;
+            --black: #000000;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F7;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--black);
+            color: var(--white);
+        }
+        .main-header {
+            background-color: var(--deep-purple);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .main-nav .nav-list {
+            display: flex;
+            list-style: none;
+        }
+        .nav-link {
+            color: var(--white);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--light-purple);
+        }
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .bar {
+            display: block;
+            width: 25px;
+            height: 3px;
+            margin: 5px auto;
+            background-color: var(--white);
+            transition: all 0.3s ease-in-out;
+        }
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4rem 2rem;
+            background-color: var(--deep-purple);
+        }
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .hero-description {
+            font-size: 1.25rem;
+            color: var(--light-gray);
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--light-purple);
+            color: var(--white);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: var(--deep-purple);
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--white);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .process-steps {
+            display: flex;
+            justify-content: space-around;
+            padding: 2rem;
+        }
+        .step {
+            text-align: center;
+            max-width: 200px;
+        }
+        .step-icon {
+            font-size: 2rem;
+            color: var(--light-purple);
+            margin-bottom: 1rem;
+        }
+        .upload-container {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .file-upload-area {
+            border: 2px dashed var(--light-purple);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background-color: var(--deep-purple);
+        }
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--light-purple);
+            margin-bottom: 1rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: var(--light-purple);
+            color: var(--white);
+        }
+        .btn-secondary {
+            background-color: var(--deep-purple);
+            color: var(--white);
+        }
+        .btn-icon {
+            padding: 0.5rem;
+            font-size: 1.2rem;
+        }
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .volume-slider {
+            margin: 0 1rem;
+        }
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--light-purple);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #ff3b30;
+            text-align: center;
+            padding: 1rem;
+        }
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+        .emotion-display {
+            font-size: 1.5rem;
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .waveform {
+            width: 100%;
+            height: 150px;
+            background-color: var(--deep-purple);
+        }
+        .about-description {
+            font-size: 1.25rem;
+            color: var(--light-gray);
+            text-align: center;
+            padding: 0 2rem;
+        }
+        .faq-accordion {
+            padding: 2rem;
+        }
+        .faq-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 1rem;
+        }
+        .faq-item {
+            margin-bottom: 1rem;
+        }
+        .faq-question {
+            background-color: var(--deep-purple);
+            border: 1px solid var(--light-purple);
+            border-radius: 8px;
+            padding: 1rem;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            color: var(--white);
+        }
+        .faq-question:hover {
+            background-color: var(--light-purple);
+        }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            color: var(--light-gray);
+        }
+        .connect-links {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .connect-link {
+            margin: 0 1rem;
+            color: var(--light-purple);
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            background-color: var(--deep-purple);
+            border-top: 1px solid var(--light-purple);
+        }
+        .footer-logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--white);
+        }
+        .footer-nav-list {
+            display: flex;
+            list-style: none;
+        }
+        .footer-nav-link {
+            color: var(--white);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            transition: color 0.3s ease;
+        }
+        .footer-nav-link:hover {
+            color: var(--light-purple);
+        }
+        .social-links {
+            display: flex;
+        }
+        .social-link {
+            margin: 0 0.5rem;
+            color: var(--light-purple);
+            text-decoration: none;
+            font-size: 1.5rem;
+        }
+        .footer-bottom {
+            text-align: center;
+            padding: 1rem;
+            background-color: var(--black);
+            color: var(--light-gray);
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header" id="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-text">Entropy</span>
+            </div>
+            <nav class="main-nav">
+                <ul class="nav-list">
+                    <li><a href="#home" class="nav-link">Home</a></li>
+                    <li><a href="#how-it-works" class="nav-link">How it Works</a></li>
+                    <li><a href="#try-it-out" class="nav-link">Try it Out</a></li>
+                    <li><a href="#about" class="nav-link">About</a></li>
+                    <li><a href="#connect" class="nav-link">Connect</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-content">
+                <h1 class="hero-title">Discover the Emotion in Your Voice</h1>
+                <p class="hero-description">Our cutting-edge speech emotion recognition technology analyzes your voice to detect underlying emotions with unparalleled accuracy.</p>
+                <a href="#try-it-out" class="cta-button">Upload Your Audio <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="how-it-works">
+            <h2 class="section-title">How it Works</h2>
+            <div class="process-steps">
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-microphone"></i></div>
+                    <h3>Record or Upload</h3>
+                    <p>Provide an audio sample through recording or file upload.</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-wave-square"></i></div>
+                    <h3>Audio Analysis</h3>
+                    <p>Our AI processes the audio, extracting key emotional features.</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-chart-pie"></i></div>
+                    <h3>Emotion Detection</h3>
+                    <p>Advanced algorithms identify the prevalent emotions in your speech.</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon"><i class="fas fa-chart-line"></i></div>
+                    <h3>Results Visualization</h3>
+                    <p>View your emotion analysis through intuitive charts and graphs.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="try-it-out" class="try-it-out">
+            <h2 class="section-title">Try it Out</h2>
+            <div class="upload-container">
+                <div class="file-upload-area" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <p>Drag and drop your audio file here or click to upload</p>
+                    <form id="uploadForm" class="upload-form">
+                        <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+                        <button type="button" id="uploadButton" class="btn btn-primary">Choose File</button>
+                        <button type="submit" class="btn btn-secondary">Analyze</button>
+                    </form>
+                </div>
+            </div>
+            <div class="audio-controls">
+                <button id="playPauseButton" class="btn btn-icon"><i class="fas fa-play"></i></button>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.1" value="1" class="volume-slider">
+                <button id="muteButton" class="btn btn-icon"><i class="fas fa-volume-up"></i></button>
+                <button id="realTimeButton" class="btn btn-primary">Start Real-Time Detection</button>
+                <button id="shareButton" class="btn btn-secondary">Share Results</button>
+            </div>
+            <div id="loading" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing your audio...</p>
+            </div>
+            <div id="error" class="error-message"></div>
+        </section>
+
+        <section id="results" class="results" style="display: none;">
+            <h2 class="section-title">Results</h2>
+            <div class="results-container">
+                <div id="emotionDisplay" class="emotion-display"></div>
+                <canvas id="probabilityChart" class="probability-chart"></canvas>
+                <div id="waveform" class="waveform"></div>
+            </div>
+        </section>
+
+        <section id="about" class="about">
+            <h2 class="section-title">About Us</h2>
+            <p class="about-description">At Entropy, we're passionate about understanding human emotions through the power of voice. Our cutting-edge speech emotion recognition technology opens new possibilities in communication, mental health, and beyond.</p>
+            <div class="faq-accordion">
+                <h3 class="faq-title">Frequently Asked Questions</h3>
+                <div class="faq-item">
+                    <button class="faq-question">How accurate is the emotion recognition?</button>
+                    <div class="faq-answer">
+                        <p>Our technology boasts an accuracy rate of over 90%, validated through extensive testing and real-world applications.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">What file formats are supported?</button>
+                    <div class="faq-answer">
+                        <p>We support a wide range of audio formats including MP3, WAV, M4A, and OGG.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Is my data kept private?</button>
+                    <div class="faq-answer">
+                        <p>Yes, we take privacy seriously. All uploaded audio files are processed securely and deleted immediately after analysis.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="connect" class="connect">
+            <h2 class="section-title">Connect With Me</h2>
+            <div class="connect-links">
+                <a href="https://www.instagram.com/anish_inti" target="_blank" class="connect-link">
+                    <i class="fab fa-instagram"></i> Instagram
+                </a>
+                <a href="https://www.linkedin.com/in/anish-inti" target="_blank" class="connect-link">
+                    <i class="fab fa-linkedin"></i> LinkedIn
+                </a>
+                <a href="mailto:munianish076@gmail.com" class="connect-link">
+                    <i class="fas fa-envelope"></i> Email
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <span class="footer-logo-text">Entropy</span>
+            </div>
+            <nav class="footer-nav">
+                <ul class="footer-nav-list">
+                    <li><a href="#home" class="footer-nav-link">Home</a></li>
+                    <li><a href="#how-it-works" class="footer-nav-link">How it Works</a></li>
+                    <li><a href="#try-it-out" class="footer-nav-link">Try it Out</a></li>
+                    <li><a href="#about" class="footer-nav-link">About</a></li>
+                    <li><a href="#connect" class="footer-nav-link">Connect</a></li>
+                </ul>
+            </nav>
+            <div class="social-links">
+                <a href="https://www.instagram.com/anish_inti" target="_blank" class="social-link"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.linkedin.com/in/anish-inti" target="_blank" class="social-link"><i class="fab fa-linkedin"></i></a>
+                <a href="mailto:munianish076@gmail.com" class="social-link"><i class="fas fa-envelope"></i></a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2023 Entropy - Speech Emotion Recognition App. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="SPMEV.js"></script>
+    <script>
+    console.log('SPMEV.js loaded');
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded');
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+
+        if (fileInput && uploadButton) {
+            uploadButton.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', handleFileUpload);
+        } else {
+            console.error('File input or upload button not found');
+        }
+
+        // Initialize mobile menu toggle
+        const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+        const mainNav = document.querySelector('.main-nav');
+        mobileMenuToggle.addEventListener('click', () => {
+            mainNav.classList.toggle('active');
+            mobileMenuToggle.classList.toggle('active');
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Initialize FAQ accordion
+        const faqQuestions = document.querySelectorAll('.faq-question');
+        faqQuestions.forEach(question => {
+            question.addEventListener('click', () => {
+                const answer = question.nextElementSibling;
+                const isOpen = answer.style.maxHeight;
+                
+                // Close all other open FAQ items
+                document.querySelectorAll('.faq-answer').forEach(item => {
+                    item.style.maxHeight = null;
+                });
+                document.querySelectorAll('.faq-question').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // Toggle the clicked FAQ item
+                if (!isOpen) {
+                    answer.style.maxHeight = answer.scrollHeight + 'px';
+                    question.classList.add('active');
+                }
+            });
+        });
+
+        // Initialize GSAP animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Animate hero section
+        gsap.from('.hero-content', {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            scrollTrigger: {
+                trigger: '.hero',
+                start: 'top center'
+            }
+        });
+
+        // Animate how it works section
+        gsap.from('.step', {
+            opacity: 0,
+            y: 50,
+            stagger: 0.2,
+            duration: 0.8,
+            scrollTrigger: {
+                trigger: '.how-it-works',
+                start: 'top center'
+            }
+        });
+
+        // Animate try it out section
+        gsap.from('.file-upload-area', {
+            opacity: 0,
+            scale: 0.8,
+            duration: 0.8,
+            scrollTrigger: {
+                trigger: '.try-it-out',
+                start: 'top center'
+            }
+        });
+
+        // Your existing initialization code here
+    });
+
+    function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            console.log('File selected:', file.name);
+            // Add your file processing logic here
+        }
+    }
+    </script>
+</body>
+</html>
